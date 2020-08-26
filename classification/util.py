@@ -38,7 +38,8 @@ def get_embedding_matrix(word2idx, idx2word, normalization=False):
             if len(split_line) != (embedding_dim + 1) or word not in word2idx:
                 continue
             assert (len(split_line) == embedding_dim + 1)
-            vector = np.array([float(x) for x in split_line[1:]], dtype="float32")
+            vector = np.array([float(x)
+                               for x in split_line[1:]], dtype="float32")
             if normalization:
                 vector = vector / np.linalg.norm(vector)
             assert len(vector) == embedding_dim
@@ -56,7 +57,8 @@ def get_embedding_matrix(word2idx, idx2word, normalization=False):
     # Randomly initialize an embedding matrix of (vocab_size, embedding_dim) shape
     # with a similar distribution as the pretrained embeddings for words in vocab.
     vocab_size = len(word2idx)
-    embedding_matrix = torch.FloatTensor(vocab_size, embedding_dim).normal_(embeddings_mean, embeddings_stdev)
+    embedding_matrix = torch.FloatTensor(vocab_size, embedding_dim).normal_(
+        embeddings_mean, embeddings_stdev)
     # Go through the embedding matrix and replace the random vector with a
     # pretrained one if available. Start iteration at 2 since 0, 1 are PAD, UNK
     for i in range(2, vocab_size):
@@ -65,7 +67,8 @@ def get_embedding_matrix(word2idx, idx2word, normalization=False):
             embedding_matrix[i] = torch.FloatTensor(glove_vectors[word])
     if normalization:
         for i in range(vocab_size):
-            embedding_matrix[i] = embedding_matrix[i] / float(np.linalg.norm(embedding_matrix[i]))
+            embedding_matrix[i] = embedding_matrix[i] / \
+                float(np.linalg.norm(embedding_matrix[i]))
     embeddings = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
     embeddings.weight = nn.Parameter(embedding_matrix)
     return embeddings
@@ -136,7 +139,8 @@ def embed_sequence(sequence, verb_idx, word2idx, glove_embeddings, elmo_embeddin
     # 3. embed the sequence by suffix indicators i.e. wether it is a verb or not
     indicated_sequence = [0] * len(words)
     indicated_sequence[verb_idx] = 1
-    suffix_part = suffix_embeddings(Variable(torch.LongTensor(indicated_sequence)))
+    suffix_part = suffix_embeddings(
+        Variable(torch.LongTensor(indicated_sequence)))
 
     # concatenate three parts: glove+elmo+suffix along axis 1
     assert(glove_part.shape == (len(words), 300))
@@ -180,14 +184,20 @@ def evaluate(evaluation_dataloader, model, criterion, using_GPU):
         predicted = model(eval_text, eval_lengths)
         # Calculate loss for this test batch. This is averaged, so multiply
         # by the number of examples in batch to get a total.
-        total_eval_loss += criterion(predicted, eval_labels).data[0] * eval_labels.size(0)
+        try:
+            total_eval_loss += criterion(predicted,
+                                         eval_labels).data[0] * eval_labels.size(0)
+        except:
+            total_eval_loss += criterion(predicted,
+                                         eval_labels).data.item() * eval_labels.size(0)
         _, predicted_labels = torch.max(predicted.data, 1)
         total_examples += eval_labels.size(0)
         num_correct += torch.sum(predicted_labels == eval_labels.data)
         for i in range(eval_labels.size(0)):
-            confusion_matrix[int(predicted_labels[i]), eval_labels.data[i]] += 1
+            confusion_matrix[int(predicted_labels[i]),
+                             eval_labels.data[i]] += 1
 
-    accuracy = 100 * num_correct / total_examples
+    accuracy = 100 * num_correct // total_examples
     average_eval_loss = total_eval_loss / total_examples
 
     precision = 100 * confusion_matrix[0, 0] / np.sum(confusion_matrix[0])
@@ -205,6 +215,8 @@ def evaluate(evaluation_dataloader, model, criterion, using_GPU):
     return average_eval_loss, accuracy, precision, recall, met_f1, class_wise_f1
 
 # Make sure to subclass torch.utils.data.Dataset
+
+
 class TextDatasetWithGloveElmoSuffix(Dataset):
     def __init__(self, embedded_text, labels, max_sequence_length=100):
         """
@@ -223,7 +235,6 @@ class TextDatasetWithGloveElmoSuffix(Dataset):
         # Truncate examples that are longer than max_sequence_length.
         # Long sequences are expensive and might blow up GPU memory usage.
         self.max_sequence_length = max_sequence_length
-
 
     def __getitem__(self, idx):
         """

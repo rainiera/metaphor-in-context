@@ -20,7 +20,7 @@ print("PyTorch version:")
 print(torch.__version__)
 print("GPU Detected:")
 print(torch.cuda.is_available())
-using_GPU = True
+using_GPU = False
 
 """
 1. Data pre-processing
@@ -54,7 +54,8 @@ with open('../data/VUA/VUA_formatted_test.csv', encoding='latin-1') as f:
     next(lines)
     for line in lines:
         raw_test_vua.append([line[3], int(line[4]), int(line[5])])
-print('VUA dataset division: ', len(raw_train_vua), len(raw_val_vua), len(raw_test_vua))
+print('VUA dataset division: ', len(raw_train_vua),
+      len(raw_val_vua), len(raw_test_vua))
 
 """
 2. Data preparation
@@ -68,7 +69,8 @@ vocab = get_vocab(raw_train_vua + raw_val_vua + raw_test_vua)
 # two dictionaries. <PAD>: 0, <UNK>: 1
 word2idx, idx2word = get_word2idx_idx2word(vocab)
 # glove_embeddings a nn.Embeddings
-glove_embeddings = get_embedding_matrix(word2idx, idx2word, normalization=False)
+glove_embeddings = get_embedding_matrix(
+    word2idx, idx2word, normalization=False)
 # elmo_embeddings
 elmos_train_vua = h5py.File('../elmo/VUA_train.hdf5', 'r')
 elmos_val_vua = h5py.File('../elmo/VUA_val.hdf5', 'r')
@@ -124,7 +126,7 @@ if using_GPU:
 # Set up criterion for calculating loss
 nll_criterion = nn.NLLLoss()
 # Set up an optimizer for updating the parameters of the rnn_clf
-rnn_clf_optimizer = optim.SGD(rnn_clf.parameters(), lr=0.01,momentum=0.9)
+rnn_clf_optimizer = optim.SGD(rnn_clf.parameters(), lr=0.01, momentum=0.9)
 # Number of epochs (passes through the dataset) to train the model for.
 num_epochs = 20
 
@@ -164,15 +166,16 @@ for epoch in range(num_epochs):
             print(
                 "Iteration {}. Validation Loss {}. Validation Accuracy {}. Validation Precision {}. Validation Recall {}. Validation F1 {}. Validation class-wise F1 {}.".format(
                     num_iter, avg_eval_loss, eval_accuracy, precision, recall, f1, fus_f1))
-            # filename = '../models/LSTMSuffixElmoAtt_???_all_iter_' + str(num_iter) + '.pt'
-            # torch.save(rnn_clf, filename)
-#             avg_eval_loss, eval_accuracy, precision, recall, f1, fus_f1 = evaluate(train_dataloader_vua, rnn_clf,
-#                                                                                    nll_criterion, using_GPU)
-#             training_loss.append(avg_eval_loss)
-#             training_f1.append(f1)
-#             print(
-#                 "Iteration {}. Training Loss {}. Training Accuracy {}. Training Precision {}. Training Recall {}. Training F1 {}. Training class-wise F1 {}.".format(
-#                     num_iter, avg_eval_loss, eval_accuracy, precision, recall, f1, fus_f1))
+            filename = '../models/LSTMSuffixElmo_all_iter_' + \
+                str(num_iter) + '.pt'
+            torch.save(rnn_clf, filename)
+            avg_eval_loss, eval_accuracy, precision, recall, f1, fus_f1 = evaluate(train_dataloader_vua, rnn_clf,
+                                                                                   nll_criterion, using_GPU)
+            training_loss.append(avg_eval_loss)
+            training_f1.append(f1)
+            print(
+                "Iteration {}. Training Loss {}. Training Accuracy {}. Training Precision {}. Training Recall {}. Training F1 {}. Training class-wise F1 {}.".format(
+                    num_iter, avg_eval_loss, eval_accuracy, precision, recall, f1, fus_f1))
 print("Training done!")
 
 # cannot display the graph in terminal on remote server
@@ -218,4 +221,3 @@ avg_eval_loss, eval_accuracy, precision, recall, f1, fus_f1 = evaluate(test_data
                                                                        nll_criterion, using_GPU)
 print("Test Accuracy {}. Test Precision {}. Test Recall {}. Test F1 {}. Test class-wise F1 {}.".format(
     eval_accuracy, precision, recall, f1, fus_f1))
-
